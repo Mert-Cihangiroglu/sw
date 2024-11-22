@@ -1,0 +1,78 @@
+# Ignore compiled Python files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Ignore environment and package files
+env/
+venv/
+ENV/
+*.env
+*.venv
+*.envrc
+*.virtualenv
+Pipfile
+Pipfile.lock
+poetry.lock
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and debug files
+*.log
+*.out
+*.err
+
+# Ignore PyTest and coverage reports
+.pytest_cache/
+.coverage
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+
+# Ignore static analysis tools
+.mypy_cache/
+.pytype/
+.pyre/
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# Ignore data and backup files
+*.bak
+*.tmp
+*.swp
+*.swo
+
+# Ignore IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore build artifacts
+build/
+dist/
+*.egg-info/
+*.eggs/
+.eggs/
+
+# Ignore specific project files
+data/  # Add this if `data/` contains non-versioned data files, otherwise remove
+logs/
+*.sqlite3
+
+# Ignore TensorFlow checkpoints if applicable
+checkpoint/
+
+data/
+logs/
+/output
+/saved_masks
+/tests
