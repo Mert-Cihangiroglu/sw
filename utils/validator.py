@@ -12,10 +12,10 @@ import copy
 import os
 
 
-console = Console()
-
+console = Console() 
+# Have different amount of data samples for the validator sets
 class Validator:
-    def __init__(self, validator_id, data_loader, device, global_model, zip_percent=0.5):
+    def __init__(self, validator_id, data_loader, device, scale_down_factor= 0.2, zip_percent=0.5):
         self.validator_id = validator_id
         self.data_loader = data_loader
         self.device = device
@@ -25,9 +25,7 @@ class Validator:
         self.mask_path = f"saved_masks/validator_{validator_id}_mask.pth"
         self.pruner = TensorPruner(zip_percent=self.zip_percent)
         self.model_usage_log = {}
-        self.global_model = global_model
-        self.scale_down_factor=0.2
-        
+        self.scale_down_factor = scale_down_factor
         # Load mask if it exists
         if os.path.exists(self.mask_path):
             self.mask = torch.load(self.mask_path)
@@ -248,36 +246,6 @@ class Validator:
         return self.mask
         # (1) See if you can finetune the pretrained model.
 
-    def generate_mask_from_gm(self):
-        self.mask = {}
-        pruner = TensorPruner(zip_percent=self.zip_percent)
-        outputs = torch.tensor([], device=self.device)
-        targets = torch.tensor([], device=self.device)
-        
-        for data, target in self.data_loader:
-            data, target = data.to(self.device), target.to(self.device)
-            output = self.global_model(data)
-            outputs = torch.cat((outputs,output),0)
-            targets = torch.cat((targets,target),0)
-        loss = self.criterion(outputs,targets)
-        
-        gradients = torch.autograd.grad(
-                loss, self.global_model.parameters(), create_graph=True)
-        
-        for (name, param), grad in zip(self.global_model.named_parameters(), gradients):
-            #print(name, grad)
-            pruner.update_thresh_hold(grad)
-            self.mask[name] = (pruner.prune_tensor(grad) != 0).float()
-            self.mask[name][self.mask[name] == 0] = self.scale_down_factor
-            #print(self.mask)
-        
-        # Ensure the directory exists
-        os.makedirs(os.path.dirname(self.mask_path), exist_ok=True)
-        torch.save(self.mask, self.mask_path)
-        console.print(f"[Validator {self.validator_id}] Scaled mask generated and saved at {self.mask_path}")
-
-        return self.mask
-    
     def generate_mask_from_lm(self, lm_model):
         self.mask = {}
         pruner = TensorPruner(zip_percent=self.zip_percent)

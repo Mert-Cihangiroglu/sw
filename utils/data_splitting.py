@@ -221,7 +221,7 @@ def partition_data_specific_classes(dataset, client_class_assignments, dominant_
     
     return client_loaders, assigned_classes
 
-def dirichlet_partition(dataset, num_clients, alpha):
+def dirichlet_partition(dataset, num_clients, alpha, seed=42):
     """
     Partition a dataset into non-IID splits using Dirichlet distribution.
 
@@ -229,10 +229,14 @@ def dirichlet_partition(dataset, num_clients, alpha):
         dataset (Dataset): PyTorch dataset to partition.
         num_clients (int): Number of clients.
         alpha (float): Dirichlet concentration parameter (smaller = more non-IID).
+        seed (int, optional): Random seed to ensure reproducibility.
 
     Returns:
         List[Subset]: List of PyTorch Subsets, one for each client.
     """
+    if seed is not None:
+        np.random.seed(seed)  # Set the random seed for reproducibility
+
     targets = np.array(dataset.targets)  # Assuming dataset has a 'targets' attribute
     num_classes = len(np.unique(targets))
     indices = np.arange(len(targets))
@@ -246,7 +250,7 @@ def dirichlet_partition(dataset, num_clients, alpha):
     # Allocate indices to clients
     client_indices = [[] for _ in range(num_clients)]
     for c, class_idx in enumerate(class_indices):
-        np.random.shuffle(class_idx)
+        np.random.shuffle(class_idx)  # Shuffle class indices (controlled by seed above)
         class_split = np.split(class_idx, (proportions[c] * len(class_idx)).cumsum()[:-1].astype(int))
         for client_id, split in enumerate(class_split):
             client_indices[client_id].extend(split)
@@ -255,7 +259,7 @@ def dirichlet_partition(dataset, num_clients, alpha):
     client_datasets = [Subset(dataset, idxs) for idxs in client_indices]
     return client_datasets
 
-def prepare_data(batch_size, num_clients, setting='iid', alpha=0.5, num_classes_per_client=None):
+def prepare_data(batch_size, num_clients, alpha, setting='iid', num_classes_per_client=None):
     """
     Prepare CIFAR-10 dataset for federated learning with various distribution settings.
 

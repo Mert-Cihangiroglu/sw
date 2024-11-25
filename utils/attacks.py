@@ -71,9 +71,6 @@ class LabelFlippingAttack:
                     labels[i] = self.flip_mapping[labels[i].item()]
         return data_loader
     
-    
-import torch
-
 class LIEAttack:
     def __init__(self, epsilon=0.1):
         """
@@ -127,25 +124,3 @@ class DBAttack:
                 data[i] = self.trigger_function(data[i])
                 labels[i] = self.target_label
         return data_loader
-
-class A3FLAttack:
-    def __init__(self, aggregation_function):
-        """
-        Initialize the A3FL attack.
-
-        Args:
-            aggregation_function (callable): Function to manipulate the aggregation process.
-        """
-        self.aggregation_function = aggregation_function
-
-    def apply(self, client_updates):
-        """
-        Manipulate the aggregation process.
-
-        Args:
-            client_updates (list of dict): List of model updates from clients.
-
-        Returns:
-            dict: Manipulated global update.
-        """
-        return self.aggregation_function(client_updates)
