@@ -1,17 +1,17 @@
 [
     {
-        "num_rounds": 10,
-        "num_clients": 4,
+        "num_rounds": 30,
+        "num_clients": 10,
         "num_classes_per_client": 3,
         "batch_size": 64,
         "iid_setting": false,
         "special_distribution": false,
         "dirichlet": true,
         "class_spesific": false,
-        "aggregation_method": "lm_mask",
+        "aggregation_method": "fedavg",
         "top_k": 3,
-        "scale_down_factor": 0.4,
-        "zip_percent": 0.2,
+        "scale_down_factor": null,
+        "zip_percent": null,
         "alpha": 0.3
     }
 ]

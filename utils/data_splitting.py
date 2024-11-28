@@ -259,73 +259,6 @@ def dirichlet_partition(dataset, num_clients, alpha, seed=42):
     client_datasets = [Subset(dataset, idxs) for idxs in client_indices]
     return client_datasets
 
-def prepare_data(batch_size, num_clients, alpha, setting='iid', num_classes_per_client=None):
-    """
-    Prepare CIFAR-10 dataset for federated learning with various distribution settings.
-
-    Args:
-        batch_size (int): Batch size for data loaders.
-        num_clients (int): Number of clients.
-        setting (str): Distribution setting ('iid', 'class_specific', 'dominant', 'dirichlet').
-        alpha (float, optional): Dirichlet concentration parameter for 'dirichlet' setting.
-        num_classes_per_client (int, optional): Number of classes per client for 'class_specific' setting.
-
-    Returns:
-        client_loaders, validator_loaders (dict or single DataLoader), and test_loader.
-    """
-    # Load CIFAR-10 dataset
-    transform = Compose([ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
-    train_data = CIFAR10(root="./data", train=True, download=True, transform=transform)
-    val_data = CIFAR10(root="./data", train=False, download=True, transform=transform)
-    test_data = CIFAR10(root="./data", train=False, download=True, transform=transform)
-
-    if setting == 'iid':
-        # IID: Split the dataset into equal parts
-        total_samples = len(train_data)
-        samples_per_client = total_samples // num_clients
-        indices = np.arange(total_samples)
-        np.random.shuffle(indices)
-
-        client_loaders = [
-            DataLoader(
-                Subset(train_data, indices[i * samples_per_client:(i + 1) * samples_per_client]),
-                batch_size=batch_size,
-                shuffle=True,
-            )
-            for i in range(num_clients)
-        ]
-        validator_loaders = create_class_specific_validators(val_data, batch_size)
-        description = "IID Setting"
-
-    elif setting == 'dirichlet':
-        # Dirichlet-based non-IID partitioning
-        client_datasets = dirichlet_partition(train_data, num_clients=num_clients, alpha=alpha)
-        client_loaders = [
-            DataLoader(client_ds, batch_size=batch_size, shuffle=True) for client_ds in client_datasets
-        ]
-        validator_loaders = create_class_specific_validators(val_data, batch_size)
-        description = f"Dirichlet Non-IID Setting (alpha={alpha})"
-
-    elif setting == 'class_specific':
-        # Class-specific non-IID partitioning
-        client_loaders, class_assignments = partition_data_class_specific(
-            train_data, num_clients, num_classes_per_client, batch_size
-        )
-        validator_loaders = create_class_specific_validators(val_data, batch_size)
-        description = "Class-Specific Non-IID Setting"
-        console.print(f"[bold green]Class assignments per client: {class_assignments}[/bold green]")
-
-    else:
-        raise ValueError("Unsupported setting. Choose from 'iid', 'dirichlet', or 'class_specific'.")
-
-    # Print data statistics
-    print_data_statistics(client_loaders, validator_loaders, description=description)
-
-    # Return loaders
-    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
-    return client_loaders, validator_loaders, test_loader
-
-# Utility Functions
 def create_class_specific_validators(val_data, batch_size):
     """
     Create DataLoaders for validators, one for each class in the validation set.
@@ -409,7 +342,73 @@ def print_data_statistics(client_loaders, validator_loaders=None, description=""
         table.add_row(*row)
 
     console.print(table)
-    
+   
+def prepare_data(batch_size, num_clients, alpha, setting='iid', num_classes_per_client=None):
+    """
+    Prepare CIFAR-10 dataset for federated learning with various distribution settings.
+
+    Args:
+        batch_size (int): Batch size for data loaders.
+        num_clients (int): Number of clients.
+        setting (str): Distribution setting ('iid', 'class_specific', 'dominant', 'dirichlet').
+        alpha (float, optional): Dirichlet concentration parameter for 'dirichlet' setting.
+        num_classes_per_client (int, optional): Number of classes per client for 'class_specific' setting.
+
+    Returns:
+        client_loaders, validator_loaders (dict or single DataLoader), and test_loader.
+    """
+    # Load CIFAR-10 dataset
+    transform = Compose([ToTensor(), Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    train_data = CIFAR10(root="./data", train=True, download=True, transform=transform)
+    val_data = CIFAR10(root="./data", train=False, download=True, transform=transform)
+    test_data = CIFAR10(root="./data", train=False, download=True, transform=transform)
+
+    if setting == 'iid':
+        # IID: Split the dataset into equal parts
+        total_samples = len(train_data)
+        samples_per_client = total_samples // num_clients
+        indices = np.arange(total_samples)
+        np.random.shuffle(indices)
+
+        client_loaders = [
+            DataLoader(
+                Subset(train_data, indices[i * samples_per_client:(i + 1) * samples_per_client]),
+                batch_size=batch_size,
+                shuffle=True,
+            )
+            for i in range(num_clients)
+        ]
+        validator_loaders = create_class_specific_validators(val_data, batch_size)
+        description = "IID Setting"
+
+    elif setting == 'dirichlet':
+        # Dirichlet-based non-IID partitioning
+        client_datasets = dirichlet_partition(train_data, num_clients=num_clients, alpha=alpha)
+        client_loaders = [
+            DataLoader(client_ds, batch_size=batch_size, shuffle=True) for client_ds in client_datasets
+        ]
+        validator_loaders = create_class_specific_validators(val_data, batch_size)
+        description = f"Dirichlet Non-IID Setting (alpha={alpha})"
+
+    elif setting == 'class_specific':
+        # Class-specific non-IID partitioning
+        client_loaders, class_assignments = partition_data_class_specific(
+            train_data, num_clients, num_classes_per_client, batch_size
+        )
+        validator_loaders = create_class_specific_validators(val_data, batch_size)
+        description = "Class-Specific Non-IID Setting"
+        console.print(f"[bold green]Class assignments per client: {class_assignments}[/bold green]")
+
+    else:
+        raise ValueError("Unsupported setting. Choose from 'iid', 'dirichlet', or 'class_specific'.")
+
+    # Print data statistics
+    print_data_statistics(client_loaders, validator_loaders, description=description)
+
+    # Return loaders
+    test_loader = DataLoader(test_data, batch_size=batch_size, shuffle=False)
+    return client_loaders, validator_loaders, test_loader
+ 
 def test_all_settings():
     batch_size = 64
     num_clients = 10

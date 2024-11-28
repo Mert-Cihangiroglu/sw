@@ -15,8 +15,8 @@ def generate_configurations(base_dir, aggregation_methods, alphas, zip_percents,
                     config_path = os.path.join(method_dir, config_name)
 
                     config = [{
-                        "num_rounds": 10,
-                        "num_clients": 4,
+                        "num_rounds": 2,
+                        "num_clients": 2,
                         "num_classes_per_client": 3,
                         "batch_size": 64,
                         "iid_setting": False,
@@ -36,8 +36,8 @@ def generate_configurations(base_dir, aggregation_methods, alphas, zip_percents,
 
 generate_configurations(
     base_dir="configurations",
-    aggregation_methods=[ "lm_mask"],
-    alphas=[0.1, 0.3, 0.5],
-    zip_percents=[0.2, 0.4, 0.6],
-    scale_factors=[0.2, 0.4, 0.6]
+    aggregation_methods=[ "lm_mask","gradcam", "fedavg"],
+    alphas=[0.3],
+    zip_percents=[0.4, 0.6],
+    scale_factors=[0.3, 0.6]
 )

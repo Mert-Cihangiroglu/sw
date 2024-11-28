@@ -98,8 +98,6 @@ class Validator:
         for name, param in top_models[0].state_dict().items():
             pruned_tensors = []
             
-            
-            
             #print(f"Processing layer '{name}'")
             #print(f"Original parameter shape: {param.shape}")
 
@@ -275,6 +273,56 @@ class Validator:
         console.print(f"[Validator {self.validator_id}] Scaled mask generated and saved at {self.mask_path}")
 
         return self.mask
+    
+    def generate_mask_from_lm_1step(self, lm_model):
+        """
+        Generate a weighted mask for a specific class by retaining the most important weights
+        and scaling down less important ones.
+        
+        Args:
+            lm_model (nn.Module): Local model whose weights will be masked.
+
+        Returns:
+            dict: Weighted mask for each parameter in the model.
+        """
+        self.mask = {}
+        outputs = torch.tensor([], device=self.device)
+        targets = torch.tensor([], device=self.device)
+
+        # Collect model outputs and targets
+        for data, target in self.data_loader:
+            data, target = data.to(self.device), target.to(self.device)
+            output = lm_model(data)
+            outputs = torch.cat((outputs, output), 0)
+            targets = torch.cat((targets, target), 0)
+
+        # Compute loss for class-specific data
+        loss = self.criterion(outputs, targets)
+
+        # Compute gradients for all parameters
+        gradients = torch.autograd.grad(loss, lm_model.parameters(), create_graph=False)
+
+        # Generate weighted mask for each parameter based on gradients
+        for (name, param), grad in zip(lm_model.named_parameters(), gradients):
+            if grad is None:  # Skip layers with no gradients
+                continue
+            
+            # Normalize gradient values
+            grad_abs = grad.abs()
+            threshold = grad_abs.mean()  # Use the mean gradient value as a threshold
+            
+            # Create a weighted mask
+            mask = (grad_abs >= threshold).float() + (grad_abs < threshold).float() * self.scale_down_factor
+            
+            # Store the mask
+            self.mask[name] = mask
+
+        # Save the mask for future use
+        os.makedirs(os.path.dirname(self.mask_path), exist_ok=True)
+        torch.save(self.mask, self.mask_path)
+        console.print(f"[Validator {self.validator_id}] Weighted mask generated and saved at {self.mask_path}")
+
+        return self.mask
         
     def generate_class_specific_mask(self, model, freeze_early_layers=True, scale_down_factor=0.5):
         """
@@ -361,7 +409,7 @@ class Validator:
         
         return pruned_model
     
-    def generate_mask_with_gradcam(self, model,scale_down_factor, target_layer, ):
+    def generate_mask_with_gradcam(self, model, scale_down_factor, target_layer, ):
         """
         Generate a weighted mask using Grad-CAM relevance scores for the validator's specific class.
 
